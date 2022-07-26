@@ -1,33 +1,35 @@
 ++++++++++++++++++++++++lamda function 1 ++++++++++++++++++++++++++++++++
 import json
-import sagemaker
+import boto3
 import base64
-from sagemaker.serializers import IdentitySerializer
 
-# Fill this in with the name of your deployed model
-ENDPOINT = "image-classification-2022-07-23-17-14-30-760" ## TODO: fill in
+s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
+    """A function to serialize target data from S3"""
+    
+    # Get the s3 address from the Step Function event input
+    key = "test/bicycle_s_000513.png"  ## TODO: fill in
+    bucket = "sagemaker-us-east-2-622818390027" ## TODO: fill in
+    
+    # Download the data from s3 to /tmp/image.png
+    ## TODO: fill in
+    s3.download_file(bucket, key, '/tmp/image.png')
+    
+    # We read the data from a file
+    with open("/tmp/image.png", "rb") as f:
+        image = base64.b64encode(f.read())
 
-    # Decode the image data
-    image = base64.b64decode(image_data)
-
-    # Instantiate a Predictor
-    predictor = sagemaker.predictor.Predictor(ENDPOINT)
-
-    # For this model the IdentitySerializer needs to be "image/png"
-    predictor.serializer = IdentitySerializer("image/png")
-    with open(image, "rb") as f:
-        payload = f.read()
-
-    # Make a prediction:
-    inferences = predictor.predict(payload)
-
-    # We return the data back to the Step Function    
-    event["inferences"] = inferences.decode('utf-8')
+    # Pass the data back to the Step Function
+    # print("Event:", event.keys())
     return {
         'statusCode': 200,
-        'body': json.dumps(event)
+        'body': {
+            "image_raw": image,
+            "s3_bucket": bucket,
+            "s3_key": key,
+            "inferences": []
+        }
     }
 
 
